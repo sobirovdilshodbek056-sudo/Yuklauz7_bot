@@ -353,6 +353,19 @@ def main():
     logger.info("Yuklauz7_bot ishga tushmoqda...")
     logger.info("=" * 50)
     
+    # Clear any existing webhooks/sessions before starting
+    try:
+        import requests
+        logger.info("Telegram webhook va sessiyalarni tozalash...")
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            logger.info("Webhook muvaffaqiyatli tozalandi")
+        else:
+            logger.warning(f"Webhook tozalashda xatolik: {response.text}")
+    except Exception as e:
+        logger.warning(f"Webhook tozalashda xatolik (davom etamiz): {e}")
+    
     # Application yaratish
     app = (
         ApplicationBuilder()
