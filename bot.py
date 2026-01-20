@@ -147,10 +147,17 @@ def sync_download(url: str, user_id: int) -> dict:
     if is_youtube_url(url):
         ydl_opts = {
             "outtmpl": output_template,
-            # Format with AUDIO - download video+audio together
-            # Priority: pre-merged mp4 with audio, then best quality with audio
-            "format": "bestvideo[ext=mp4][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][height<=480]/best[height<=480]/best",
-            "merge_output_format": "mp4",  # Merge to mp4 if separate streams
+            # AUDIO BILAN FORMAT - Ovoz albatta bo'lishi kerak!
+            # Priority: 
+            # 1. Pre-merged mp4 with audio (18 = 360p with audio, 22 = 720p with audio)
+            # 2. Best video+audio combination
+            # 3. Any format with audio
+            "format": "(bestvideo[height<=480]+bestaudio/best[height<=480])[ext=mp4]/best[ext=mp4]/best",
+            "merge_output_format": "mp4",
+            "postprocessors": [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
@@ -180,19 +187,24 @@ def sync_download(url: str, user_id: int) -> dict:
             # Retries
             "retries": 10,
             "fragment_retries": 10,
-            "extractor_retries": 5,  # Retry extractor on failure
+            "extractor_retries": 5,
             # Socket timeout
             "socket_timeout": 30,
             # Progress hook
             "progress_hooks": [progress.hook],
         }
     else:
-        # Boshqa saytlar uchun oddiy sozlamalar (Instagram, TikTok, Facebook)
+        # Boshqa saytlar uchun (Instagram, TikTok, Facebook)
         ydl_opts = {
             "outtmpl": output_template,
-            # Format with AUDIO - ensure audio is included
-            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            # AUDIO BILAN FORMAT - Ovoz albatta bo'lishi kerak!
+            # Priority: pre-merged formats with audio first
+            "format": "(bestvideo+bestaudio/best)[ext=mp4]/best",
             "merge_output_format": "mp4",
+            "postprocessors": [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
