@@ -288,14 +288,21 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Videoni yuborish
         await status.edit_text("📤 Video yuborilmoqda...")
         
-        # Title'ni tozalash - faqat oddiy matn
+        # Title'ni tozalash - BARCHA maxsus belgilarni olib tashlash
         safe_title = result['title'][:50]
+        # Remove ALL non-ASCII and special characters to avoid Telegram parsing errors
+        safe_title = ''.join(char for char in safe_title if char.isalnum() or char.isspace())
+        safe_title = safe_title.strip()
+        
+        # If title is empty after cleaning, use default
+        if not safe_title:
+            safe_title = "Video"
         
         with open(filepath, "rb") as video_file:
             await update.message.reply_video(
                 video=video_file,
                 caption=f"✅ {safe_title}\n\n@Yuklauz7_bot",
-                # NO parse_mode - avoid Markdown errors
+                # NO parse_mode - plain text only
                 read_timeout=120,
                 write_timeout=120,
             )
