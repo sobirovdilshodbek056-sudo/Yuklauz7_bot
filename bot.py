@@ -15,6 +15,9 @@ from telegram.ext import (
     ContextTypes,
     filters
 )
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+import time
 
 # ====== LOGGING SETUP ======
 logging.basicConfig(
@@ -387,19 +390,63 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Global xatolik handler"""
     logger.error(f"Global xatolik: {context.error}", exc_info=context.error)
 
+# ====== HEALTH CHECK HTTP SERVER ======
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """HTTP health check endpoint - UptimeRobot uchun"""
+    
+    def do_GET(self):
+        """GET request handler"""
+        if self.path == '/' or self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            status = {
+                "status": "ok",
+                "bot": "Yuklauz7_bot",
+                "uptime": time.time() - start_time,
+                "timestamp": datetime.now().isoformat()
+            }
+            self.wfile.write(str(status).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
+    def log_message(self, format, *args):
+        """Suppress HTTP server logs"""
+        pass
+
+def run_health_check_server():
+    """Health check HTTP server ni alohida threadda ishga tushirish"""
+    port = int(os.getenv('PORT', 8080))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    logger.info(f"[HEALTH] HTTP server ishga tushdi: http://0.0.0.0:{port}")
+    server.serve_forever()
+
 # ====== KEEP-ALIVE MECHANISM ======
+start_time = time.time()
+
 async def keep_alive_ping(context: ContextTypes.DEFAULT_TYPE):
     """
     Har 5 daqiqada bir marta bot aktiv ekanligini log qiladi.
     Bu Render.com va boshqa platformalarda botni uyquga ketishdan saqlaydi.
     """
-    logger.info("🔄 Keep-alive ping: Bot aktiv va ishlayapti")
+    uptime_hours = (time.time() - start_time) / 3600
+    logger.info(f"🔄 Keep-alive ping: Bot aktiv va ishlayapti | Uptime: {uptime_hours:.2f} soat")
 
 # ====== MAIN ======
 def main():
+    global start_time
+    start_time = time.time()
+    
     logger.info("=" * 50)
     logger.info("Yuklauz7_bot ishga tushmoqda...")
     logger.info("=" * 50)
+    
+    # HTTP Health Check Server ni alohida threadda ishga tushirish
+    health_thread = threading.Thread(target=run_health_check_server, daemon=True)
+    health_thread.start()
+    logger.info("[HEALTH] Health check server thread boshlandi")
     
     # Clear any existing webhooks/sessions before starting
     try:
@@ -441,9 +488,17 @@ def main():
     logger.info("[BOT] Yuklauz7_bot ishga tushdi!")
     logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, YouTube, TikTok, Facebook")
     logger.info("[KEEP-ALIVE] Har 5 daqiqada ping yuboriladi")
+    logger.info("[24/7] HTTP health check endpoint faol")
+    logger.info("[24/7] UptimeRobot uchun tayyor: http://0.0.0.0:8080/health")
     
-    # Polling boshlash
-    app.run_polling(drop_pending_updates=True)
+    # Polling boshlash - auto-restart bilan
+    try:
+        app.run_polling(drop_pending_updates=True)
+    except Exception as e:
+        logger.error(f"[ERROR] Polling xatolik: {e}", exc_info=True)
+        logger.info("[RESTART] 5 soniyadan keyin qayta ishga tushirish...")
+        time.sleep(5)
+        main()  # Rekursiv restart
 
 if __name__ == "__main__":
     main()
