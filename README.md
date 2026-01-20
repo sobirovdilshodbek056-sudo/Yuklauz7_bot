@@ -80,6 +80,26 @@ For production deployment, set these environment variables:
 - Video quality: Up to 720p (to stay within size limits)
 - Private/age-restricted videos may not work
 
+## Keep-Alive Mechanism
+
+⚠️ **MUHIM: Bepul hosting platformalarda bot 10-15 daqiqadan keyin "uxlashi" mumkin!**
+
+### Yechimlar:
+
+1. **Keep-alive mexanizmi** - Bot har 5 daqiqada avtomatik ping yuboradi
+2. **Railway.app** - Oyiga 5$ kredit bepul (tavsiya etiladi)
+3. **Render.com** - Free plan: 15 daqiqadan keyin inactive bo'ladi
+4. **Koyeb.com** - Bepul va doimo aktiv (eng yaxshi variant!)
+
+### Deployment platformalari:
+
+| Platform | Bepul plan | Keep-alive | Tavsiya |
+|----------|-----------|------------|---------|
+| **Koyeb** | ✅ Ha | ✅ Doimo aktiv | ⭐⭐⭐⭐⭐ |
+| **Railway** | ✅ 5$/oy | ✅ Yaxshi | ⭐⭐⭐⭐ |
+| **Render** | ✅ Ha | ⚠️ 15 min keyin uxlaydi | ⭐⭐⭐ |
+| **Heroku** | ❌ Yo'q | - | ❌ |
+
 ## Logging
 
 All bot activity is logged to `bot.log` for debugging and monitoring.

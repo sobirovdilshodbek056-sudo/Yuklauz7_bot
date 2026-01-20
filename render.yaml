@@ -9,3 +9,5 @@ services:
       - key: BOT_TOKEN
         sync: false
     autoDeploy: true
+    # Worker uchun healthcheck yo'q, lekin restart policy bor
+    # Free plan: 15 daqiqadan keyin uxlaydi, lekin keep-alive mexanizmi yordam beradi

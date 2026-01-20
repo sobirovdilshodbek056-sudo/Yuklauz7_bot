@@ -163,8 +163,8 @@ def sync_download(url: str, user_id: int) -> dict:
             "noplaylist": True,
             "extract_flat": False,
             
-            # Cookie support - try browser cookies (may fail on server, that's OK)
-            "cookiesfrombrowser": ("chrome",),
+            # Cookie support - DISABLED for server deployment
+            # "cookiesfrombrowser": ("chrome",),  # This fails on servers without browsers
             
             # YouTube-specific extractor args for 2026
             "extractor_args": {
@@ -387,6 +387,14 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Global xatolik handler"""
     logger.error(f"Global xatolik: {context.error}", exc_info=context.error)
 
+# ====== KEEP-ALIVE MECHANISM ======
+async def keep_alive_ping(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Har 5 daqiqada bir marta bot aktiv ekanligini log qiladi.
+    Bu Render.com va boshqa platformalarda botni uyquga ketishdan saqlaydi.
+    """
+    logger.info("🔄 Keep-alive ping: Bot aktiv va ishlayapti")
+
 # ====== MAIN ======
 def main():
     logger.info("=" * 50)
@@ -406,13 +414,14 @@ def main():
     except Exception as e:
         logger.warning(f"Webhook tozalashda xatolik (davom etamiz): {e}")
     
-    # Application yaratish
+    # Application yaratish - timeout vaqtlarini oshirdik
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
-        .read_timeout(60)
-        .write_timeout(60)
-        .connect_timeout(30)
+        .read_timeout(120)      # 60 -> 120 sekund
+        .write_timeout(120)     # 60 -> 120 sekund
+        .connect_timeout(60)    # 30 -> 60 sekund
+        .pool_timeout(60)       # Yangi: connection pool timeout
         .build()
     )
 
@@ -424,8 +433,14 @@ def main():
     # Error handler
     app.add_error_handler(error_handler)
 
+    # Keep-alive job - har 5 daqiqada ishga tushadi
+    from telegram.ext import JobQueue
+    job_queue = app.job_queue
+    job_queue.run_repeating(keep_alive_ping, interval=300, first=60)  # 300 sekund = 5 daqiqa
+
     logger.info("[BOT] Yuklauz7_bot ishga tushdi!")
     logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, YouTube, TikTok, Facebook")
+    logger.info("[KEEP-ALIVE] Har 5 daqiqada ping yuboriladi")
     
     # Polling boshlash
     app.run_polling(drop_pending_updates=True)

@@ -1,0 +1,38 @@
+app:
+  name: yuklauz7-bot
+  type: worker
+  
+  # Build sozlamalari
+  build:
+    buildCommand: chmod +x build.sh && ./build.sh && pip install -r requirements.txt
+  
+  # Run sozlamalari
+  run:
+    command: python bot.py
+  
+  # Environment variables
+  env:
+    - name: BOT_TOKEN
+      type: secret
+      required: true
+  
+  # Region
+  regions:
+    - fra  # Frankfurt (Europe)
+  
+  # Instance type (free tier)
+  instance:
+    type: nano
+  
+  # Healthcheck - worker uchun kerak emas
+  # healthcheck:
+  #   http:
+  #     port: 8080
+  
+  # Auto-scaling (free tier: 1 instance)
+  scaling:
+    min: 1
+    max: 1
+  
+  # Restart policy
+  restart: always
