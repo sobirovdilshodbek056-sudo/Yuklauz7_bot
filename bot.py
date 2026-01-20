@@ -150,49 +150,34 @@ def sync_download(url: str, user_id: int) -> dict:
     if is_youtube_url(url):
         ydl_opts = {
             "outtmpl": output_template,
-            # AUDIO BILAN FORMAT - Ovoz albatta bo'lishi kerak!
-            # Priority: 
-            # 1. Pre-merged mp4 with audio (18 = 360p with audio, 22 = 720p with audio)
-            # 2. Best video+audio combination
-            # 3. Any format with audio
-            "format": "(bestvideo[height<=480]+bestaudio/best[height<=480])[ext=mp4]/best[ext=mp4]/best",
+            # TEZLIK OPTIMIZATSIYASI: 360p (18 format) - tez va ovozli
+            # Format 18 = 360p MP4 with audio (pre-merged, no processing needed)
+            "format": "18/best[height<=360][ext=mp4]/best[height<=480]/best",
             "merge_output_format": "mp4",
-            "postprocessors": [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }],
+            # Postprocessor OLIB TASHLANDI - tezlik uchun
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
             "extract_flat": False,
             
-            # Cookie support - DISABLED for server deployment
-            # "cookiesfrombrowser": ("chrome",),  # This fails on servers without browsers
-            
             # YouTube-specific extractor args for 2026
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["mweb", "web"],  # Use mobile web client as fallback
-                    "skip": ["hls", "dash"],  # Skip complex streaming formats
+                    "player_client": ["mweb", "web"],
+                    "skip": ["hls", "dash"],
                 }
             },
             
-            # Updated HTTP headers for 2026
+            # Optimized HTTP headers
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             },
-            # Retries
-            "retries": 10,
-            "fragment_retries": 10,
-            "extractor_retries": 5,
-            # Socket timeout
-            "socket_timeout": 30,
+            # Reduced retries for speed
+            "retries": 3,
+            "fragment_retries": 3,
+            "extractor_retries": 2,
+            # Shorter timeout
+            "socket_timeout": 20,
             # Progress hook
             "progress_hooks": [progress.hook],
         }
@@ -200,21 +185,19 @@ def sync_download(url: str, user_id: int) -> dict:
         # Boshqa saytlar uchun (Instagram, TikTok, Facebook)
         ydl_opts = {
             "outtmpl": output_template,
-            # AUDIO BILAN FORMAT - Ovoz albatta bo'lishi kerak!
-            # Priority: pre-merged formats with audio first
-            "format": "(bestvideo+bestaudio/best)[ext=mp4]/best",
+            # TEZLIK OPTIMIZATSIYASI: past sifat, tez yuklash
+            "format": "best[height<=360][ext=mp4]/best[height<=480]/best",
             "merge_output_format": "mp4",
-            "postprocessors": [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }],
+            # Postprocessor OLIB TASHLANDI - tezlik uchun
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             },
-            "retries": 5,
+            # Reduced retries for speed
+            "retries": 3,
+            "socket_timeout": 20,
             "progress_hooks": [progress.hook],
         }
     
