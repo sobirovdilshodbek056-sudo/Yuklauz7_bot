@@ -1,1 +1,1 @@
-web: python yuklauz7_bot.py
+web: python bot.py
