@@ -147,9 +147,10 @@ def sync_download(url: str, user_id: int) -> dict:
     if is_youtube_url(url):
         ydl_opts = {
             "outtmpl": output_template,
-            # Ultra-simplified format for maximum compatibility
-            # Avoid merge operations that require FFmpeg
-            "format": "best[ext=mp4][height<=480]/best[height<=480]/best",
+            # Format with AUDIO - download video+audio together
+            # Priority: pre-merged mp4 with audio, then best quality with audio
+            "format": "bestvideo[ext=mp4][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][height<=480]/best[height<=480]/best",
+            "merge_output_format": "mp4",  # Merge to mp4 if separate streams
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
@@ -184,19 +185,19 @@ def sync_download(url: str, user_id: int) -> dict:
             "socket_timeout": 30,
             # Progress hook
             "progress_hooks": [progress.hook],
-            # NO postprocessors - avoid FFmpeg dependency issues
         }
     else:
-        # Boshqa saytlar uchun oddiy sozlamalar
+        # Boshqa saytlar uchun oddiy sozlamalar (Instagram, TikTok, Facebook)
         ydl_opts = {
             "outtmpl": output_template,
-            "format": "best[ext=mp4]/best",
+            # Format with AUDIO - ensure audio is included
+            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "merge_output_format": "mp4",
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             },
             "retries": 5,
             "progress_hooks": [progress.hook],
