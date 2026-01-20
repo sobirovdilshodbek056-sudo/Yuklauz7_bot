@@ -154,15 +154,32 @@ def sync_download(url: str, user_id: int) -> dict:
             "no_warnings": False,
             "noplaylist": True,
             "extract_flat": False,
-            # HTTP headers
+            
+            # Cookie support - try browser cookies (may fail on server, that's OK)
+            "cookiesfrombrowser": ("chrome",),
+            
+            # YouTube-specific extractor args for 2026
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["mweb", "web"],  # Use mobile web client as fallback
+                    "skip": ["hls", "dash"],  # Skip complex streaming formats
+                }
+            },
+            
+            # Updated HTTP headers for 2026
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
             },
             # Retries
             "retries": 10,
             "fragment_retries": 10,
+            "extractor_retries": 5,  # Retry extractor on failure
             # Socket timeout
             "socket_timeout": 30,
             # Progress hook
@@ -320,7 +337,13 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Download xatoligi: {error_msg}", exc_info=True)
         
         # Xatolik turlarini ajratish
-        if "Video unavailable" in error_msg or "Private video" in error_msg:
+        if "Sign in to confirm" in error_msg or ("bot" in error_msg.lower() and "youtube" in url.lower()):
+            await status.edit_text(
+                "❌ YouTube bot detection!\n\n"
+                "⚠️ YouTube hozirda qo'shimcha tekshiruv talab qilmoqda.\n\n"
+                "✅ Instagram, TikTok va Facebook ishlaydi."
+            )
+        elif "Video unavailable" in error_msg or "Private video" in error_msg:
             await status.edit_text("❌ Video mavjud emas yoki yopiq (private).")
         elif "age" in error_msg.lower() or "age-restricted" in error_msg.lower():
             await status.edit_text("❌ Yosh cheklovi bor, yuklab bo'lmaydi.")
