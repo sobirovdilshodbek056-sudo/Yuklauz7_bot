@@ -147,9 +147,9 @@ def sync_download(url: str, user_id: int) -> dict:
     if is_youtube_url(url):
         ydl_opts = {
             "outtmpl": output_template,
-            # Simplified format - more reliable
-            "format": "best[height<=720][ext=mp4]/best[height<=720]/best",
-            "merge_output_format": "mp4",
+            # Ultra-simplified format for maximum compatibility
+            # Avoid merge operations that require FFmpeg
+            "format": "best[ext=mp4][height<=480]/best[height<=480]/best",
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
@@ -161,15 +161,13 @@ def sync_download(url: str, user_id: int) -> dict:
                 "Accept-Language": "en-US,en;q=0.5",
             },
             # Retries
-            "retries": 5,
-            "fragment_retries": 5,
+            "retries": 10,
+            "fragment_retries": 10,
+            # Socket timeout
+            "socket_timeout": 30,
             # Progress hook
             "progress_hooks": [progress.hook],
-            # Postprocessors - FIXED TYPO
-            "postprocessors": [{
-                "key": "FFmpegVideoConvertor",
-                "preferedformat": "mp4",  # This will be converted by ffmpeg if needed
-            }],
+            # NO postprocessors - avoid FFmpeg dependency issues
         }
     else:
         # Boshqa saytlar uchun oddiy sozlamalar
