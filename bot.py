@@ -288,15 +288,14 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Videoni yuborish
         await status.edit_text("📤 Video yuborilmoqda...")
         
-        # Title'ni tozalash - Markdown uchun xavfli belgilarni olib tashlash
+        # Title'ni tozalash - faqat oddiy matn
         safe_title = result['title'][:50]
-        # Simple approach: remove special markdown characters instead of escaping
-        safe_title = re.sub(r'[_*\[\]()~`>#+=|{}.!-]', '', safe_title)
         
         with open(filepath, "rb") as video_file:
             await update.message.reply_video(
                 video=video_file,
                 caption=f"✅ {safe_title}\n\n@Yuklauz7_bot",
+                # NO parse_mode - avoid Markdown errors
                 read_timeout=120,
                 write_timeout=120,
             )
