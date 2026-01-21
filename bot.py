@@ -181,6 +181,10 @@ def sync_download(url: str, user_id: int) -> dict:
             # Progress hook
             "progress_hooks": [progress.hook],
         }
+    
+    # Cookies qo'shish
+    if os.path.exists("cookies.txt"):
+        ydl_opts["cookiefile"] = "cookies.txt"
     else:
         # Boshqa saytlar uchun (Instagram, TikTok, Facebook)
         ydl_opts = {
@@ -200,6 +204,10 @@ def sync_download(url: str, user_id: int) -> dict:
             "socket_timeout": 20,
             "progress_hooks": [progress.hook],
         }
+
+    # Cookies qo'shish (takroriy bo'lsa ham mayli, xavfsizlik uchun)
+    if os.path.exists("cookies.txt"):
+        ydl_opts["cookiefile"] = "cookies.txt"
     
     try:
         with YoutubeDL(ydl_opts) as ydl:
@@ -430,6 +438,20 @@ def main():
     health_thread = threading.Thread(target=run_health_check_server, daemon=True)
     health_thread.start()
     logger.info("[HEALTH] Health check server thread boshlandi")
+    
+    # COOKIES SETUP
+    cookies_content = os.getenv("COOKIES_CONTENT")
+    if cookies_content:
+        try:
+            with open("cookies.txt", "w", encoding='utf-8') as f:
+                f.write(cookies_content)
+            logger.info("✅ Cookies fayli yaratildi (Env Var dan)")
+        except Exception as e:
+            logger.error(f"❌ Cookies faylini yaratishda xatolik: {e}")
+    elif os.path.exists("cookies.txt"):
+        logger.info("✅ Cookies fayli topildi (fayl tizimdan)")
+    else:
+        logger.warning("⚠️ Cookies topilmadi! Instagram/YouTube login xatosi berishi mumkin.")
     
     # Clear any existing webhooks/sessions before starting
     try:
