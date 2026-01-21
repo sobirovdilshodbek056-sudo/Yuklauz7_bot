@@ -74,6 +74,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
+# ====== DEBUG ======
+async def debug_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in [604138676, 5636041300]: # O'zingizning ID raqamingizni ham qo'shishingiz mumkin
+        pass
+        
+    # Check cookies
+    cookie_status = "❌ Yo'q"
+    if os.path.exists("cookies.txt"):
+        size = os.path.getsize("cookies.txt")
+        cookie_status = f"✅ Bor ({size} bytes)"
+    
+    # Check env
+    env_content = os.getenv("COOKIES_CONTENT")
+    env_status = "❌ Yo'q"
+    if env_content:
+        env_status = f"✅ Bor ({len(env_content)} chars)"
+        
+    await update.message.reply_text(
+        f"🛠 *Debug Info*\n\n"
+        f"🍪 Cookies fayl: {cookie_status}\n"
+        f"🌐 Env Var: {env_status}\n"
+        f"📂 Download dir: {len(glob.glob(os.path.join(DOWNLOAD_DIR, '*')))} items",
+        parse_mode="Markdown"
+    )
+
 # ====== BUTTONS ======
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -163,7 +189,7 @@ def sync_download(url: str, user_id: int) -> dict:
             # YouTube-specific extractor args for 2026
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["mweb", "web"],
+                    "player_client": ["android", "ios"],
                     "skip": ["hls", "dash"],
                 }
             },
@@ -475,6 +501,7 @@ def main():
 
     # Handlers
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("debug", debug_bot))
     app.add_handler(CallbackQueryHandler(buttons))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_video))
     
