@@ -181,10 +181,6 @@ def sync_download(url: str, user_id: int) -> dict:
             # Progress hook
             "progress_hooks": [progress.hook],
         }
-    
-    # Cookies qo'shish
-    if os.path.exists("cookies.txt"):
-        ydl_opts["cookiefile"] = "cookies.txt"
     else:
         # Boshqa saytlar uchun (Instagram, TikTok, Facebook)
         ydl_opts = {
@@ -205,7 +201,7 @@ def sync_download(url: str, user_id: int) -> dict:
             "progress_hooks": [progress.hook],
         }
 
-    # Cookies qo'shish (takroriy bo'lsa ham mayli, xavfsizlik uchun)
+    # Cookies qo'shish (Umumiy)
     if os.path.exists("cookies.txt"):
         ydl_opts["cookiefile"] = "cookies.txt"
     
