@@ -188,24 +188,27 @@ def sync_download(url: str, user_id: int) -> dict:
             "noplaylist": True,
             "extract_flat": False,
             
-            # YouTube-specific extractor args for 2026
+            # 2026 YANGILANGAN: YouTube player extraction fix
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "ios"],
-                    "skip": ["hls", "dash"],
+                    # Eng ishonchli clientlar (2026)
+                    "player_client": ["ios", "android", "web"],
+                    # PO Token (recommended for bot detection bypass)
+                    "player_skip": ["webpage", "configs"],
                 }
             },
             
             # Optimized HTTP headers
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
             },
             # Reduced retries for speed
-            "retries": 3,
-            "fragment_retries": 3,
-            "extractor_retries": 2,
-            # Shorter timeout
-            "socket_timeout": 20,
+            "retries": 5,
+            "fragment_retries": 5,
+            "extractor_retries": 3,
+            # Longer timeout for YouTube
+            "socket_timeout": 30,
             # Progress hook
             "progress_hooks": [progress.hook],
         }
