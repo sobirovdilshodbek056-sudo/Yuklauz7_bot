@@ -69,8 +69,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Assalomu alaykum!\n\n"
         "🤖 *Yuklauz7\\_bot*\n\n"
-        "📥 Instagram, TikTok va Facebook videolarini\n"
-        "*original ovozi bilan* yuklab beraman.\n\n"
+        "📥 Instagram, TikTok, Facebook dan video yuklab beraman.\n\n"
         "👇 Tugmalardan foydalaning yoki video link yuboring.",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
