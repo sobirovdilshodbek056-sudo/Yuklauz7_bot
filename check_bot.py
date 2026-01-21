@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import requests
+import os
 import json
 from datetime import datetime
 
@@ -106,5 +107,6 @@ print("RENDER.COM DA 24/7 ISHLASH:")
 print("=" * 60)
 print("[INFO] Render.com bepul planda 15 daqiqadan keyin uxlaydi")
 print("[ACTION] UptimeRobot qo'shing: https://uptimerobot.com/")
-print("[ACTION] Har 5 daqiqada Render service URL ga ping yuboring")
+print("[ACTION] URL ga '/health' qo'shib ping bering aka! (Masalan: https://...onrender.com/health)")
+print(f"[ACTION] Batafsil qo'llanma: {os.path.abspath('24_7_ISHLASH_QOLLANMASI.md')}")
 print("=" * 60)

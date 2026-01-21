@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web
     name: yuklauz7-bot
     runtime: python
     plan: free
@@ -9,5 +9,4 @@ services:
       - key: BOT_TOKEN
         sync: false
     autoDeploy: true
-    # Worker uchun healthcheck yo'q, lekin restart policy bor
-    # Free plan: 15 daqiqadan keyin uxlaydi, lekin keep-alive mexanizmi yordam beradi
+    # Web Service 15 daqiqada uxlaydi, UptimeRobot orqali ping qilish SHART (bot.py ichida HTTP server bor)
