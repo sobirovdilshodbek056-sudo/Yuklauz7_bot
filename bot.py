@@ -69,7 +69,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Assalomu alaykum!\n\n"
         "🤖 *Yuklauz7\\_bot*\n\n"
-        "📥 Instagram, YouTube, TikTok va Facebook videolarini\n"
+        "📥 Instagram, TikTok va Facebook videolarini\n"
         "*original ovozi bilan* yuklab beraman.\n\n"
         "👇 Tugmalardan foydalaning yoki video link yuboring.",
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -522,7 +522,7 @@ def main():
     job_queue.run_repeating(keep_alive_ping, interval=300, first=60)  # 300 sekund = 5 daqiqa
 
     logger.info("[BOT] Yuklauz7_bot ishga tushdi!")
-    logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, YouTube, TikTok, Facebook")
+    logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, TikTok, Facebook")
     logger.info("[KEEP-ALIVE] Har 5 daqiqada ping yuboriladi")
     logger.info("[24/7] HTTP health check endpoint faol")
     logger.info("[24/7] UptimeRobot uchun tayyor: http://0.0.0.0:8080/health")
