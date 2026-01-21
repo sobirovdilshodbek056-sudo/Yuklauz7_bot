@@ -178,9 +178,9 @@ def sync_download(url: str, user_id: int) -> dict:
     if is_youtube_url(url):
         ydl_opts = {
             "outtmpl": output_template,
-            # TEZLIK OPTIMIZATSIYASI: 360p (18 format) - tez va ovozli
-            # Format 18 = 360p MP4 with audio (pre-merged, no processing needed)
-            "format": "18/best[height<=360][ext=mp4]/best[height<=480]/best",
+            # UNIVERSAL FORMAT: Har qanday video uchun ishlaydi
+            # Eng yaxshi sifat (audio bilan), agar yo'q bo'lsa merge qiladi
+            "format": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]/best",
             "merge_output_format": "mp4",
             # Postprocessor OLIB TASHLANDI - tezlik uchun
             "quiet": False,
