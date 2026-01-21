@@ -188,13 +188,16 @@ def sync_download(url: str, user_id: int) -> dict:
             "noplaylist": True,
             "extract_flat": False,
             
-            # 2026 YANGILANGAN: YouTube player extraction fix
+            
+            # 2026 AGGRESSIVE BOT BYPASS: Faqat iOS (eng ishonchli)
             "extractor_args": {
                 "youtube": {
-                    # Eng ishonchli clientlar (2026)
-                    "player_client": ["ios", "android", "web"],
-                    # PO Token (recommended for bot detection bypass)
+                    # FAQAT iOS client (eng past detection rate)
+                    "player_client": ["ios"],
+                    # Barcha webpage parsing ni o'chirish
                     "player_skip": ["webpage", "configs"],
+                    # Innertube API bypass
+                    "skip": ["translated_subs"],
                 }
             },
             
