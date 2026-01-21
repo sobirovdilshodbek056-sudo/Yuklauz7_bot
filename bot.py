@@ -7,6 +7,8 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from yt_dlp import YoutubeDL
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import Conflict
+import sys
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -522,6 +524,10 @@ def main():
     # Polling boshlash - auto-restart bilan
     try:
         app.run_polling(drop_pending_updates=True)
+    except Conflict:
+        logger.critical("[STOP] Bot boshqa joyda ishga tushirildi (Conflict)!")
+        logger.critical("Iltimos, eski botni yoki Render dagi botni o'chiring.")
+        sys.exit(1)
     except Exception as e:
         logger.error(f"[ERROR] Polling xatolik: {e}", exc_info=True)
         logger.info("[RESTART] 5 soniyadan keyin qayta ishga tushirish...")
