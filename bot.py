@@ -308,19 +308,80 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # URL ni context.user_data ga saqlash
-    context.user_data["pending_url"] = url
+    # To'g'ridan-to'g'ri video yuklash (tugma kerak emas)
+    await download_video_direct(update, context, url)
+
+# ====== DIRECT VIDEO DOWNLOAD ======
+async def download_video_direct(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str):
+    """To'g'ridan-to'g'ri video yuklash - tugma kerak emas"""
+    user_id = update.effective_user.id
+    filepath = None
     
-    # Faqat Video tugmasi (audio olib tashlandi)
-    keyboard = [
-        [
-            InlineKeyboardButton("📹 Video yuklash", callback_data="dl_video")
-        ]
-    ]
-    await update.message.reply_text(
-        "🎬 Video yuklamoqchimisiz?",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    # Status message
+    status = await update.message.reply_text("⏳ Video yuklanmoqda...")
+
+    try:
+        # Oldingi fayllarni tozalash
+        cleanup_downloads()
+        
+        # Threadda sinxron yuklash
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            executor, 
+            lambda: sync_download(url, user_id, "video")
+        )
+        
+        filepath = result["filepath"]
+        
+        # Fayl hajmini tekshirish
+        file_size = result["filesize"]
+        if file_size > MAX_SIZE:
+            os.remove(filepath)
+            await status.edit_text(
+                f"⚠️ Video hajmi {format_file_size(file_size)}\n\n"
+                f"Telegram limiti: {format_file_size(MAX_SIZE)}"
+            )
+            logger.warning(f"Fayl hajmi katta: {file_size} bytes")
+            return
+        
+        await status.edit_text("📤 Video yuborilmoqda...")
+        
+        # Video yuborish (caption yo'q)
+        chat_id = update.effective_chat.id
+        
+        with open(filepath, "rb") as file:
+            await context.bot.send_video(
+                chat_id=chat_id,
+                video=file,
+                supports_streaming=True,
+                read_timeout=120,
+                write_timeout=120,
+            )
+        
+        await status.delete()
+        logger.info(f"Video muvaffaqiyatli yuborildi: {filepath}")
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Download xatoligi: {error_msg}", exc_info=True)
+        
+        if "Sign in to confirm" in error_msg:
+            await status.edit_text("❌ Platforma tekshiruv talab qilmoqda.")
+        elif "Video unavailable" in error_msg or "Private video" in error_msg:
+            await status.edit_text("❌ Video mavjud emas yoki yopiq.")
+        elif "format" in error_msg.lower() or "No video formats" in error_msg:
+            await status.edit_text("❌ Video formati qo'llab-quvvatlanmaydi.")
+        elif "HTTP Error 403" in error_msg or "HTTP Error 429" in error_msg:
+            await status.edit_text("❌ Server ruxsat bermadi.")
+        else:
+            await status.edit_text("❌ Xatolik yuz berdi.")
+    
+    finally:
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except:
+                pass
 
 # ====== ACTUAL DOWNLOAD HANDLER ======
 async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, download_type: str):
@@ -393,8 +454,7 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE, ur
                 sent_message = await context.bot.send_video(
                     chat_id=chat_id,
                     video=file,
-                    caption=f"✅ {safe_title}\n\n@Yuklauz7_bot\n\n💾 Yuklab olish: Faylga bosing va 3 nuqtani bosib 'Yuklab olish' ni tanlang",
-                    supports_streaming=True,  # Streaming support
+                    supports_streaming=True,
                     read_timeout=120,
                     write_timeout=120,
                 )
