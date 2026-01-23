@@ -126,13 +126,21 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
     # Download callbacks
-    elif query.data.startswith("dl_video_"):
-        url = query.data.replace("dl_video_", "")
-        await handle_download(update, context, url, "video")
+    elif query.data == "dl_video":
+        # Get URL from user_data
+        url = context.user_data.get("pending_url")
+        if url:
+            await handle_download(update, context, url, "video")
+        else:
+            await query.edit_message_text("❌ Xatolik: URL topilmadi. Qaytadan link yuboring.")
     
-    elif query.data.startswith("dl_audio_"):
-        url = query.data.replace("dl_audio_", "")
-        await handle_download(update, context, url, "audio")
+    elif query.data == "dl_audio":
+        # Get URL from user_data
+        url = context.user_data.get("pending_url")
+        if url:
+            await handle_download(update, context, url, "audio")
+        else:
+            await query.edit_message_text("❌ Xatolik: URL topilmadi. Qaytadan link yuboring.")
 
 # ====== URL CHECK ======
 def is_valid_url(url: str) -> bool:
@@ -322,11 +330,14 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Tanlov tugmalari ko'rsatish
+    # URL ni context.user_data ga saqlash (callback_data 64 bayt limit tufayli)
+    context.user_data["pending_url"] = url
+    
+    # Tanlov tugmalari ko'rsatish (qisqa callback_data)
     keyboard = [
         [
-            InlineKeyboardButton("📹 Video", callback_data=f"dl_video_{url}"),
-            InlineKeyboardButton("🎵 Audio", callback_data=f"dl_audio_{url}")
+            InlineKeyboardButton("📹 Video", callback_data="dl_video"),
+            InlineKeyboardButton("🎵 Audio", callback_data="dl_audio")
         ]
     ]
     await update.message.reply_text(
