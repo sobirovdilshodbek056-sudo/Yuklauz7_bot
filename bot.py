@@ -69,7 +69,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Assalomu alaykum!\n\n"
         "🤖 *Yuklauz7\\_bot*\n\n"
-        "📥 Instagram, TikTok, Facebook dan video yuklab beraman.\n\n"
+        "📥 Instagram, TikTok, Facebook dan video (musiqa bilan) yuklab beraman.\n\n"
         "👇 Tugmalardan foydalaning yoki video link yuboring.",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
@@ -110,8 +110,9 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "📌 *Qanday ishlaydi?*\n\n"
             "1️⃣ Video linkni yuboring\n"
-            "2️⃣ Kuting ⏳\n"
-            "3️⃣ Video tayyor ✅\n\n"
+            "2️⃣ Video yoki Audio tanlang 🎬🎵\n"
+            "3️⃣ Kuting ⏳\n"
+            "4️⃣ Fayl tayyor ✅\n\n"
             "⚠️ Private akkaunt videolari yuklanmaydi.",
             parse_mode="Markdown"
         )
@@ -119,17 +120,28 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "download":
         await query.edit_message_text(
             "🔗 Video havolasini yuboring\n\n"
-            "Instagram | YouTube | TikTok | Facebook"
+            "Instagram | TikTok | Facebook\n\n"
+            "📹 Video yoki 🎵 Audio formatda yuklab olishingiz mumkin!"
         )
+    
+    # Download callbacks
+    elif query.data.startswith("dl_video_"):
+        url = query.data.replace("dl_video_", "")
+        await handle_download(update, context, url, "video")
+    
+    elif query.data.startswith("dl_audio_"):
+        url = query.data.replace("dl_audio_", "")
+        await handle_download(update, context, url, "audio")
 
 # ====== URL CHECK ======
 def is_valid_url(url: str) -> bool:
-    pattern = r"(instagram\.com|tiktok\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|shorts)"
+    pattern = r"(instagram\.com|tiktok\.com|facebook\.com|fb\.watch)"
     return bool(re.search(pattern, url, re.IGNORECASE))
 
-def is_youtube_url(url: str) -> bool:
-    pattern = r"(youtube\.com|youtu\.be)"
-    return bool(re.search(pattern, url, re.IGNORECASE))
+# YouTube qo'llab-quvvatlanmaydi
+# def is_youtube_url(url: str) -> bool:
+#     pattern = r"(youtube\.com|youtu\.be)"
+#     return bool(re.search(pattern, url, re.IGNORECASE))
 
 # ====== CLEANUP ======
 def cleanup_downloads():
@@ -161,7 +173,7 @@ class DownloadProgress:
             logger.info(f"Yuklash tugadi: {d.get('filename', 'N/A')}")
 
 # ====== SYNC DOWNLOAD FUNCTION ======
-def sync_download(url: str, user_id: int) -> dict:
+def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
     """
     Sinxron yuklab olish funksiyasi - threadda ishlaydi
     """
@@ -173,55 +185,45 @@ def sync_download(url: str, user_id: int) -> dict:
     # Progress hook
     progress = DownloadProgress()
     
-    # YouTube uchun maxsus sozlamalar
-    if is_youtube_url(url):
+    # UNIVERSAL FORMAT - Barcha platformalar uchun (Instagram, TikTok, Facebook)
+    if download_type == "audio":
+        # FAQAT AUDIO YUKLASH - ODDIY VARIANT (postprocessor yo'q)
+        # Audio formatda qaysi bo'lsa ham yuklanadi (m4a, webm, opus, etc)
+        # Telegram barcha formatlarni qabul qiladi
         ydl_opts = {
             "outtmpl": output_template,
-            # UNIVERSAL FORMAT: Har qanday video uchun ishlaydi
-            # Eng yaxshi sifat (audio bilan), agar yo'q bo'lsa merge qiladi
-            "format": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]/best",
-            "merge_output_format": "mp4",
-            # Postprocessor OLIB TASHLANDI - tezlik uchun
+            # Eng yaxshi audio formatni olish
+            "format": "bestaudio[ext=m4a]/bestaudio/best",
+            # Postprocessor YO'Q - conversion xatolarini oldini olish uchun
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
-            "extract_flat": False,
-            
-            
-            # 2026 AGGRESSIVE BOT BYPASS: Faqat iOS (eng ishonchli)
-            "extractor_args": {
-                "youtube": {
-                    # FAQAT iOS client (eng past detection rate)
-                    "player_client": ["ios"],
-                    # Barcha webpage parsing ni o'chirish
-                    "player_skip": ["webpage", "configs"],
-                    # Innertube API bypass
-                    "skip": ["translated_subs"],
-                }
-            },
-            
-            # Optimized HTTP headers
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept-Language": "en-US,en;q=0.9",
             },
-            # Reduced retries for speed
-            "retries": 5,
-            "fragment_retries": 5,
-            "extractor_retries": 3,
-            # Longer timeout for YouTube
-            "socket_timeout": 30,
-            # Progress hook
+            "retries": 3,
+            "socket_timeout": 20,
             "progress_hooks": [progress.hook],
         }
     else:
-        # Boshqa saytlar uchun (Instagram, TikTok, Facebook)
+        # VIDEO YUKLASH (audio bilan)
         ydl_opts = {
             "outtmpl": output_template,
-            # TEZLIK OPTIMIZATSIYASI: past sifat, tez yuklash
-            "format": "best[height<=360][ext=mp4]/best[height<=480]/best",
+            # AUDIO BILAN FORMAT: Avval video+audio birlashtirishga harakat qiladi
+            # Agar alohida audio stream bo'lmasa, eng yaxshi kombinatsiyani oladi
+            "format": "bestvideo[height<=480]+bestaudio/best[height<=480]",
             "merge_output_format": "mp4",
-            # Postprocessor OLIB TASHLANDI - tezlik uchun
+            # CRITICAL: Audio ni video ga embed qilish
+            "postprocessors": [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
+            # Audio codec
+            "postprocessor_args": [
+                '-c:v', 'copy',  # Video codec ni copy qilish (tezroq)
+                '-c:a', 'aac',   # Audio codec AAC (eng keng qo'llab-quvvatlanadigan)
+                '-b:a', '192k',  # Audio bitrate
+            ],
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
@@ -259,13 +261,25 @@ def sync_download(url: str, user_id: int) -> dict:
             if not filepath:
                 filepath = ydl.prepare_filename(info)
                 logger.debug(f"Filepath (method 3): {filepath}")
-                # Agar merge bo'lgan bo'lsa, mp4 bo'ladi
+                # Agar merge/convert bo'lgan bo'lsa, extension o'zgargan bo'lishi mumkin
                 base, ext = os.path.splitext(filepath)
-                if ext != ".mp4":
+                # Video uchun mp4 ni tekshirish
+                if ext not in [".mp4", ".m4a", ".webm", ".opus", ".mp3"]:
+                    # Try mp4 for video
                     possible_mp4 = base + ".mp4"
                     if os.path.exists(possible_mp4):
                         filepath = possible_mp4
-                        logger.debug(f"Filepath corrected to: {filepath}")
+                        logger.debug(f"Filepath corrected to mp4: {filepath}")
+                    # Try m4a for audio (common format)
+                    possible_m4a = base + ".m4a"
+                    if os.path.exists(possible_m4a):
+                        filepath = possible_m4a
+                        logger.debug(f"Filepath corrected to m4a: {filepath}")
+                    # Try webm for audio
+                    possible_webm = base + ".webm"
+                    if os.path.exists(possible_webm):
+                        filepath = possible_webm
+                        logger.debug(f"Filepath corrected to webm: {filepath}")
             
             # Usul 4: Downloads papkasidan izlash
             if not filepath or not os.path.exists(filepath):
@@ -303,27 +317,47 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_valid_url(url):
         await update.message.reply_text(
             "❌ Noto'g'ri link yuborildi.\n\n"
-            "Qo'llab-quvvatlanadigan: Instagram, YouTube, TikTok, Facebook"
+            "Qo'llab-quvvatlanadigan: Instagram, TikTok, Facebook"
         )
         return
 
-    status = await update.message.reply_text("⏳ Yuklanmoqda, kuting...")
+    # Tanlov tugmalari ko'rsatish
+    keyboard = [
+        [
+            InlineKeyboardButton("📹 Video", callback_data=f"dl_video_{url}"),
+            InlineKeyboardButton("🎵 Audio", callback_data=f"dl_audio_{url}")
+        ]
+    ]
+    await update.message.reply_text(
+        "🎬 Nima yuklamoqchisiz?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+# ====== ACTUAL DOWNLOAD HANDLER ======
+async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, download_type: str):
+    """Actual download logic - called from callback query"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
     filepath = None
+    
+    # Status message
+    if download_type == "audio":
+        status = await query.edit_message_text("⏳ Audio yuklanmoqda, kuting...")
+    else:
+        status = await query.edit_message_text("⏳ Video yuklanmoqda, kuting...")
 
     try:
         # Oldingi fayllarni tozalash
         cleanup_downloads()
         
-        # YouTube uchun maxsus xabar
-        if is_youtube_url(url):
-            await status.edit_text(
-                "⏳ YouTube dan yuklanmoqda...\n\n"
-                "⚠️ Bu biroz vaqt olishi mumkin."
-            )
-        
         # Threadda sinxron yuklash
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(executor, sync_download, url, user_id)
+        result = await loop.run_in_executor(
+            executor, 
+            lambda: sync_download(url, user_id, download_type)
+        )
         
         filepath = result["filepath"]
         
@@ -338,8 +372,11 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"Fayl hajmi katta: {file_size} bytes")
             return
         
-        # Videoni yuborish
-        await status.edit_text("📤 Video yuborilmoqda...")
+        # Faylni yuborish (video yoki audio)
+        if download_type == "audio":
+            await status.edit_text("📤 Audio yuborilmoqda...")
+        else:
+            await status.edit_text("📤 Video yuborilmoqda...")
         
         # Title'ni tozalash - BARCHA maxsus belgilarni olib tashlash
         safe_title = result['title'][:50]
@@ -349,16 +386,29 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # If title is empty after cleaning, use default
         if not safe_title:
-            safe_title = "Video"
+            safe_title = "Audio" if download_type == "audio" else "Video"
         
-        with open(filepath, "rb") as video_file:
-            await update.message.reply_video(
-                video=video_file,
-                caption=f"✅ {safe_title}\n\n@Yuklauz7_bot",
-                # NO parse_mode - plain text only
-                read_timeout=120,
-                write_timeout=120,
-            )
+        # Send based on type
+        chat_id = update.effective_chat.id
+        
+        with open(filepath, "rb") as file:
+            if download_type == "audio":
+                sent_message = await context.bot.send_audio(
+                    chat_id=chat_id,
+                    audio=file,
+                    caption=f"🎵 {safe_title}\n\n@Yuklauz7_bot\n\n💾 Yuklab olish: Faylga bosing va 3 nuqtani bosib 'Yuklab olish' ni tanlang",
+                    read_timeout=120,
+                    write_timeout=120,
+                )
+            else:
+                sent_message = await context.bot.send_video(
+                    chat_id=chat_id,
+                    video=file,
+                    caption=f"✅ {safe_title}\n\n@Yuklauz7_bot\n\n💾 Yuklab olish: Faylga bosing va 3 nuqtani bosib 'Yuklab olish' ni tanlang",
+                    supports_streaming=True,  # Streaming support
+                    read_timeout=120,
+                    write_timeout=120,
+                )
         
         await status.delete()
         logger.info(f"Video muvaffaqiyatli yuborildi: {filepath}")
@@ -373,11 +423,10 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Download xatoligi: {error_msg}", exc_info=True)
         
         # Xatolik turlarini ajratish
-        if "Sign in to confirm" in error_msg or ("bot" in error_msg.lower() and "youtube" in url.lower()):
+        if "Sign in to confirm" in error_msg:
             await status.edit_text(
-                "❌ YouTube bot detection!\n\n"
-                "⚠️ YouTube hozirda qo'shimcha tekshiruv talab qilmoqda.\n\n"
-                "✅ Instagram, TikTok va Facebook ishlaydi."
+                "❌ Platforma qo'shimcha tekshiruv talab qilmoqda.\n\n"
+                "Boshqa link bilan urinib ko'ring."
             )
         elif "Video unavailable" in error_msg or "Private video" in error_msg:
             await status.edit_text("❌ Video mavjud emas yoki yopiq (private).")
@@ -521,7 +570,7 @@ def main():
     job_queue.run_repeating(keep_alive_ping, interval=300, first=60)  # 300 sekund = 5 daqiqa
 
     logger.info("[BOT] Yuklauz7_bot ishga tushdi!")
-    logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, TikTok, Facebook")
+    logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, TikTok, Facebook (audio bilan)")
     logger.info("[KEEP-ALIVE] Har 5 daqiqada ping yuboriladi")
     logger.info("[24/7] HTTP health check endpoint faol")
     logger.info("[24/7] UptimeRobot uchun tayyor: http://0.0.0.0:8080/health")

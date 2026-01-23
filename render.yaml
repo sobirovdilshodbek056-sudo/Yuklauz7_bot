@@ -8,5 +8,8 @@ services:
     envVars:
       - key: BOT_TOKEN
         sync: false
+      - key: PORT
+        value: "8080"
     autoDeploy: true
-    # Web Service 15 daqiqada uxlaydi, UptimeRobot orqali ping qilish SHART (bot.py ichida HTTP server bor)
+    # 24/7 ISHLASH: UptimeRobot bilan https://yuklauz7-bot.onrender.com/health ga ping qilish
+    healthCheckPath: /health
