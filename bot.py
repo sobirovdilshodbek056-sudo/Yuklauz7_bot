@@ -207,33 +207,19 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
             "progress_hooks": [progress.hook],
         }
     else:
-        # VIDEO YUKLASH (audio bilan)
+        # VIDEO YUKLASH - ODDIY FORMAT (Instagram, TikTok, Facebook uchun)
         ydl_opts = {
             "outtmpl": output_template,
-            # AUDIO BILAN FORMAT: Avval video+audio birlashtirishga harakat qiladi
-            # Agar alohida audio stream bo'lmasa, eng yaxshi kombinatsiyani oladi
-            "format": "bestvideo[height<=480]+bestaudio/best[height<=480]",
-            "merge_output_format": "mp4",
-            # CRITICAL: Audio ni video ga embed qilish
-            "postprocessors": [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }],
-            # Audio codec
-            "postprocessor_args": [
-                '-c:v', 'copy',  # Video codec ni copy qilish (tezroq)
-                '-c:a', 'aac',   # Audio codec AAC (eng keng qo'llab-quvvatlanadigan)
-                '-b:a', '192k',  # Audio bitrate
-            ],
+            # ODDIY FORMAT - eng yaxshi video (audio bilan)
+            "format": "best[ext=mp4]/best",
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             },
-            # Reduced retries for speed
-            "retries": 3,
-            "socket_timeout": 20,
+            "retries": 5,
+            "socket_timeout": 30,
             "progress_hooks": [progress.hook],
         }
 
