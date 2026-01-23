@@ -7,7 +7,7 @@ services:
     startCommand: python bot.py
     envVars:
       - key: BOT_TOKEN
-        sync: false
+        value: "8519182993:AAHsPvVInLwtKfsYbyKlxWecmej0acT-13s"
       - key: PORT
         value: "8080"
     autoDeploy: true
