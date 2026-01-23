@@ -33,6 +33,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ====== CONFIG ======
+# Last updated: 2026-01-23 11:04 - BOT_TOKEN configured in render.yaml
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8519182993:AAHsPvVInLwtKfsYbyKlxWecmej0acT-13s")  # Fallback to hardcoded for local testing
 DOWNLOAD_DIR = "downloads"
 MAX_SIZE = 49 * 1024 * 1024  # 49MB
