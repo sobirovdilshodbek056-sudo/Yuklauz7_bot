@@ -207,19 +207,19 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
             "progress_hooks": [progress.hook],
         }
     else:
-        # VIDEO YUKLASH - ODDIY FORMAT (Instagram, TikTok, Facebook uchun)
+        # VIDEO YUKLASH - DEFAULT FORMAT (yt-dlp o'zi tanlaydi)
         ydl_opts = {
             "outtmpl": output_template,
-            # ODDIY FORMAT - eng yaxshi video (audio bilan)
-            "format": "best[ext=mp4]/best",
+            # FORMAT YO'Q - yt-dlp eng yaxshi variantni o'zi tanlaydi
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
+            "extract_flat": False,
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
             },
             "retries": 5,
-            "socket_timeout": 30,
+            "socket_timeout": 60,
             "progress_hooks": [progress.hook],
         }
 
