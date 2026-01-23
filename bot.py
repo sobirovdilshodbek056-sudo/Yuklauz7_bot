@@ -125,20 +125,12 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📹 Video yoki 🎵 Audio formatda yuklab olishingiz mumkin!"
         )
     
-    # Download callbacks
+    # Download callback - faqat video
     elif query.data == "dl_video":
         # Get URL from user_data
         url = context.user_data.get("pending_url")
         if url:
             await handle_download(update, context, url, "video")
-        else:
-            await query.edit_message_text("❌ Xatolik: URL topilmadi. Qaytadan link yuboring.")
-    
-    elif query.data == "dl_audio":
-        # Get URL from user_data
-        url = context.user_data.get("pending_url")
-        if url:
-            await handle_download(update, context, url, "audio")
         else:
             await query.edit_message_text("❌ Xatolik: URL topilmadi. Qaytadan link yuboring.")
 
@@ -330,18 +322,17 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # URL ni context.user_data ga saqlash (callback_data 64 bayt limit tufayli)
+    # URL ni context.user_data ga saqlash
     context.user_data["pending_url"] = url
     
-    # Tanlov tugmalari ko'rsatish (qisqa callback_data)
+    # Faqat Video tugmasi (audio olib tashlandi)
     keyboard = [
         [
-            InlineKeyboardButton("📹 Video", callback_data="dl_video"),
-            InlineKeyboardButton("🎵 Audio", callback_data="dl_audio")
+            InlineKeyboardButton("📹 Video yuklash", callback_data="dl_video")
         ]
     ]
     await update.message.reply_text(
-        "🎬 Nima yuklamoqchisiz?",
+        "🎬 Video yuklamoqchimisiz?",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
