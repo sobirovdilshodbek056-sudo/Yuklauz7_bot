@@ -218,9 +218,7 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
             "concurrent_fragments": 15,  # 15 ta fragment parallel - ULTRA MAKSIMAL
             "buffersize": 4 * 1024 * 1024,  # 4MB buffer - ULTRA KATTA
             "http_chunk_size": 4 * 1024 * 1024,  # 4MB chunks - maximum speed
-            # External downloader for ULTRA speed
-            "external_downloader": "aria2c",
-            "external_downloader_args": ["-x", "32", "-k", "2M", "-j", "15"],
+            # aria2c o'chirildi - yt-dlp default downloader ishlatiladi
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                 "Connection": "keep-alive",
