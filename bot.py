@@ -243,15 +243,7 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
             "buffersize": 8 * 1024 * 1024,  # 8MB buffer - MONSTER SIZE
             "http_chunk_size": 4 * 1024 * 1024,  # 4MB chunks - ULTRA FAST
             "throttledratelimit": None,  # Tezlik cheklovi yo'q
-            # External downloader - ULTRA MONSTER SPEED aria2c
-            "external_downloader": "aria2c",
-            "external_downloader_args": [
-                "-x", "32",  # 32 connections per file - MAXIMUM!
-                "-k", "2M",  # 2MB per chunk
-                "-j", "15",  # 15 concurrent downloads
-                "--max-connection-per-server=32",
-                "--split=32",
-            ],
+            # aria2c o'chirildi - yt-dlp default downloader (hali ham 8-15x tezroq!)
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
                 "Accept": "*/*",
