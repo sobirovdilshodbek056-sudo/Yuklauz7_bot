@@ -20,15 +20,25 @@ from telegram.ext import (
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 import time
+from logging.handlers import RotatingFileHandler
 
 # ====== LOGGING SETUP ======
+# Log rotation: max 5MB per file, keep 2 backups
+file_handler = RotatingFileHandler(
+    'bot.log', 
+    maxBytes=5*1024*1024,  # 5MB
+    backupCount=2,
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler, stream_handler]
 )
 logger = logging.getLogger(__name__)
 
@@ -40,8 +50,8 @@ MAX_SIZE = 49 * 1024 * 1024  # 49MB
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# Thread pool for blocking operations
-executor = ThreadPoolExecutor(max_workers=4)
+# Thread pool for blocking operations - ULTRA EXTREME PARALLELISM (MAXIMUM!)
+executor = ThreadPoolExecutor(max_workers=30)
 
 # ====== HELPER FUNCTIONS ======
 def escape_markdown(text: str) -> str:
@@ -156,6 +166,11 @@ def cleanup_downloads():
         except Exception as e:
             logger.warning(f"Faylni o'chirib bo'lmadi {f}: {e}")
 
+async def cleanup_downloads_async():
+    """Asinxron cleanup - blocking operatsiyalarni threadda ishlatadi"""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, cleanup_downloads)
+
 # ====== PROGRESS HOOK ======
 class DownloadProgress:
     def __init__(self):
@@ -188,7 +203,7 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
     
     # UNIVERSAL FORMAT - Barcha platformalar uchun (Instagram, TikTok, Facebook)
     if download_type == "audio":
-        # FAQAT AUDIO YUKLASH - ODDIY VARIANT (postprocessor yo'q)
+        # FAQAT AUDIO YUKLASH - OPTIMIZED VERSION
         # Audio formatda qaysi bo'lsa ham yuklanadi (m4a, webm, opus, etc)
         # Telegram barcha formatlarni qabul qiladi
         ydl_opts = {
@@ -199,15 +214,25 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
+            # ULTRA EXTREME PERFORMANCE - MAXIMUM POSSIBLE! 🚀🚀🚀
+            "concurrent_fragments": 15,  # 15 ta fragment parallel - ULTRA MAKSIMAL
+            "buffersize": 4 * 1024 * 1024,  # 4MB buffer - ULTRA KATTA
+            "http_chunk_size": 4 * 1024 * 1024,  # 4MB chunks - maximum speed
+            # External downloader for ULTRA speed
+            "external_downloader": "aria2c",
+            "external_downloader_args": ["-x", "32", "-k", "2M", "-j", "15"],
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Connection": "keep-alive",
+                "Cache-Control": "no-cache",
+                "Priority": "u=0, i",
             },
             "retries": 3,
-            "socket_timeout": 20,
+            "socket_timeout": 30,
             "progress_hooks": [progress.hook],
         }
     else:
-        # VIDEO YUKLASH - DEFAULT FORMAT (yt-dlp o'zi tanlaydi)
+        # VIDEO YUKLASH - OPTIMIZED FOR SPEED
         ydl_opts = {
             "outtmpl": output_template,
             # FORMAT YO'Q - yt-dlp eng yaxshi variantni o'zi tanlaydi
@@ -215,11 +240,33 @@ def sync_download(url: str, user_id: int, download_type: str = "video") -> dict:
             "no_warnings": False,
             "noplaylist": True,
             "extract_flat": False,
+            # ULTRA EXTREME PERFORMANCE - ABSOLUTE MAXIMUM! �🔥🔥
+            "concurrent_fragments": 15,  # 15 ta fragment parallel - ABSOLUTE MAX
+            "buffersize": 8 * 1024 * 1024,  # 8MB buffer - MONSTER SIZE
+            "http_chunk_size": 4 * 1024 * 1024,  # 4MB chunks - ULTRA FAST
+            "throttledratelimit": None,  # Tezlik cheklovi yo'q
+            # External downloader - ULTRA MONSTER SPEED aria2c
+            "external_downloader": "aria2c",
+            "external_downloader_args": [
+                "-x", "32",  # 32 connections per file - MAXIMUM!
+                "-k", "2M",  # 2MB per chunk
+                "-j", "15",  # 15 concurrent downloads
+                "--max-connection-per-server=32",
+                "--split=32",
+            ],
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+                "Accept": "*/*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Cache-Control": "no-cache",
+                "Priority": "u=0, i",
             },
             "retries": 5,
             "socket_timeout": 60,
+            "fragment_retries": 10,
+            "nocheckcertificate": True,
             "progress_hooks": [progress.hook],
         }
 
