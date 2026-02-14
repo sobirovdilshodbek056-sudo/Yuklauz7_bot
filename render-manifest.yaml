@@ -1,0 +1,21 @@
+services:
+  - name: yuklauz7-bot
+    env: python
+    region: oregon
+    plan: starter
+    disk: 512
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "bash render_start.sh"
+    autoDeploy: true
+    healthCheckPath: "/health"
+    envVars:
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: SESSION
+        value: "yuklauz7_session"
+      - key: OWNER_ID
+        sync: false

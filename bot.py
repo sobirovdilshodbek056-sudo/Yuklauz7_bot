@@ -9,6 +9,9 @@ from yt_dlp import YoutubeDL
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Conflict
 import sys
+import signal
+import psutil
+import gc
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -23,11 +26,12 @@ import time
 from logging.handlers import RotatingFileHandler
 
 # ====== LOGGING SETUP ======
-# Log rotation: max 5MB per file, keep 2 backups
+# IMPROVED Log rotation: max 10MB per file, keep 3 backups (total 40MB max)
+# Bu disk to'lib ketmasligini ta'minlaydi
 file_handler = RotatingFileHandler(
     'bot.log', 
-    maxBytes=5*1024*1024,  # 5MB
-    backupCount=2,
+    maxBytes=10*1024*1024,  # 10MB (5MB dan ko'paytirildi)
+    backupCount=3,          # 3 ta backup (total ~40MB)
     encoding='utf-8'
 )
 file_handler.setLevel(logging.INFO)
@@ -43,15 +47,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ====== CONFIG ======
-# Last updated: 2026-01-23 11:04 - BOT_TOKEN configured in render.yaml
+# Last updated: 2026-02-14 - Enhanced for 24/7 long-term operation
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8519182993:AAHsPvVInLwtKfsYbyKlxWecmej0acT-13s")  # Fallback to hardcoded for local testing
 DOWNLOAD_DIR = "downloads"
 MAX_SIZE = 49 * 1024 * 1024  # 49MB
 
+# YANGI: Memory va resource limitlar (24/7 ishlash uchun)
+MEMORY_THRESHOLD_MB = int(os.getenv("MEMORY_THRESHOLD_MB", "450"))  # 450MB dan oshsa alert
+AUTO_CLEANUP_INTERVAL = int(os.getenv("AUTO_CLEANUP_INTERVAL", "3600"))  # 1 soat
+MAX_LOG_SIZE_MB = int(os.getenv("MAX_LOG_SIZE_MB", "20"))  # 20MB dan oshsa tozalash
+
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# Thread pool for blocking operations - ULTRA EXTREME PARALLELISM (MAXIMUM!)
-executor = ThreadPoolExecutor(max_workers=30)
+# Thread pool for blocking operations - RESOURCE LIMITED (24/7 uchun optimallashtirilgan)
+# 30 dan 10 ga kamaytirildi - xotira va CPU tejash uchun
+executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="bot-worker")
 
 # ====== HELPER FUNCTIONS ======
 def escape_markdown(text: str) -> str:
@@ -583,11 +593,54 @@ start_time = time.time()
 
 async def keep_alive_ping(context: ContextTypes.DEFAULT_TYPE):
     """
-    Har 5 daqiqada bir marta bot aktiv ekanligini log qiladi.
+    Har 3 daqiqada bir marta bot aktiv ekanligini log qiladi.
     Bu Render.com va boshqa platformalarda botni uyquga ketishdan saqlaydi.
     """
     uptime_hours = (time.time() - start_time) / 3600
-    logger.info(f"🔄 Keep-alive ping: Bot aktiv va ishlayapti | Uptime: {uptime_hours:.2f} soat")
+    uptime_days = uptime_hours / 24
+    
+    # Memory usage tekshirish
+    try:
+        process = psutil.Process(os.getpid())
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        logger.info(f"🔄 Keep-alive: Bot aktiv | Uptime: {uptime_days:.1f} kun | Memory: {memory_mb:.1f}MB")
+        
+        # Memory threshold check
+        if memory_mb > MEMORY_THRESHOLD_MB:
+            logger.warning(f"⚠️ Memory threshold oshdi: {memory_mb:.1f}MB > {MEMORY_THRESHOLD_MB}MB")
+            logger.info("🧹 Garbage collection ishga tushirilmoqda...")
+            gc.collect()
+            # Qayta tekshirish
+            memory_mb_after = process.memory_info().rss / 1024 / 1024
+            logger.info(f"✅ GC dan keyin: {memory_mb_after:.1f}MB (tejaldi: {memory_mb - memory_mb_after:.1f}MB)")
+    except Exception as e:
+        logger.error(f"Keep-alive ping xatolik: {e}")
+        logger.info(f"🔄 Keep-alive ping: Bot aktiv va ishlayapti | Uptime: {uptime_hours:.2f} soat")
+
+async def auto_cleanup_job(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Har soatda downloads papkasini tozalaydi.
+    Bu disk to'lib ketmasligini ta'minlaydi.
+    """
+    try:
+        files = glob.glob(os.path.join(DOWNLOAD_DIR, "*"))
+        if files:
+            logger.info(f"🧹 Auto-cleanup: {len(files)} ta fayl tozalanmoqda...")
+            for f in files:
+                try:
+                    if os.path.isfile(f):
+                        os.remove(f)
+                except Exception as e:
+                    logger.warning(f"Faylni o'chirib bo'lmadi {f}: {e}")
+            logger.info("✅ Auto-cleanup tugadi")
+        
+        # Log fayllarni tekshirish
+        if os.path.exists("bot.log"):
+            log_size_mb = os.path.getsize("bot.log") / 1024 / 1024
+            if log_size_mb > MAX_LOG_SIZE_MB:
+                logger.warning(f"⚠️ Log fayli katta: {log_size_mb:.1f}MB")
+    except Exception as e:
+        logger.error(f"Auto-cleanup xatolik: {e}")
 
 # ====== MAIN ======
 def main():
@@ -650,16 +703,36 @@ def main():
     # Error handler
     app.add_error_handler(error_handler)
 
-    # Keep-alive job - har 5 daqiqada ishga tushadi
+    # Keep-alive job - har 3 daqiqada ishga tushadi (5 dan kamaytirildi)
     from telegram.ext import JobQueue
     job_queue = app.job_queue
-    job_queue.run_repeating(keep_alive_ping, interval=300, first=60)  # 300 sekund = 5 daqiqa
+    job_queue.run_repeating(keep_alive_ping, interval=180, first=60)  # 180 sekund = 3 daqiqa
+    
+    # Auto-cleanup job - har soatda downloads tozalanadi
+    job_queue.run_repeating(auto_cleanup_job, interval=AUTO_CLEANUP_INTERVAL, first=300)  # 1 soat
 
+    # Graceful shutdown handler
+    def signal_handler(signum, frame):
+        logger.info(f"🛑 Signal qabul qilindi: {signum}. Graceful shutdown...")
+        try:
+            cleanup_downloads()
+            logger.info("✅ Cleanup tugadi")
+        except Exception as e:
+            logger.error(f"Shutdown cleanup xatolik: {e}")
+        finally:
+            sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    
     logger.info("[BOT] Yuklauz7_bot ishga tushdi!")
     logger.info("[INFO] Qo'llab-quvvatlanadi: Instagram, TikTok, Facebook (audio bilan)")
-    logger.info("[KEEP-ALIVE] Har 5 daqiqada ping yuboriladi")
+    logger.info("[KEEP-ALIVE] Har 3 daqiqada ping yuboriladi (tezlashtirildi)")
+    logger.info("[AUTO-CLEANUP] Har soatda downloads tozalanadi")
+    logger.info(f"[MEMORY] Threshold: {MEMORY_THRESHOLD_MB}MB")
     logger.info("[24/7] HTTP health check endpoint faol")
     logger.info("[24/7] UptimeRobot uchun tayyor: http://0.0.0.0:8080/health")
+    logger.info("[24/7] Uzoq muddatli ishlash uchun optimallashtirilgan")
     
     # Polling boshlash - auto-restart bilan
     try:

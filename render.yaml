@@ -10,6 +10,13 @@ services:
         value: "8519182993:AAHsPvVInLwtKfsYbyKlxWecmej0acT-13s"
       - key: PORT
         value: "8080"
+      - key: MEMORY_THRESHOLD_MB
+        value: "450"
+      - key: AUTO_CLEANUP_INTERVAL
+        value: "3600"
+      - key: MAX_LOG_SIZE_MB
+        value: "20"
     autoDeploy: true
-    # 24/7 ISHLASH: UptimeRobot bilan https://yuklauz7-bot.onrender.com/health ga ping qilish
+    # 24/7 UZOQ MUDDATLI ISHLASH - UptimeRobot bilan /health ga ping
     healthCheckPath: /health
+
